@@ -1,4 +1,4 @@
-import * as THREE from 'https://unpkg.com/three@latest/build/three.module.js';
+
 export class GameController {
     constructor(game, player) {
         this.game = game;
@@ -44,25 +44,29 @@ export class GameController {
             }
         });
     }
-    executeEvents() {
+    executeEvents(deltaTime) {
+        const speed = 5; // Movement speed (units per second)
+    
         if (this.events.forward) {
-            this.player.model.position.z -= 0.1;
+            this.player.model.position.z -= speed * deltaTime;
         }
         if (this.events.backward) {
-            this.player.model.position.z += 0.1;
+            this.player.model.position.z += speed * deltaTime;
         }
         if (this.events.left) {
-            this.player.model.position.x -= 0.1;
+            this.player.model.position.x -= speed * deltaTime;
         }
         if (this.events.right) {
-            this.player.model.position.x += 0.1;
+            this.player.model.position.x += speed * deltaTime;
         }
     
+        // Camera follows the player
         const offset = new THREE.Vector3(0, 2, 3);
-        offset.applyQuaternion(this.player.model.quaternion); 
+        offset.applyQuaternion(this.player.model.quaternion);
         this.game.camera.position.copy(this.player.model.position.clone().add(offset));
         this.game.camera.lookAt(this.player.model.position);
     }
+    
     
 
 }
