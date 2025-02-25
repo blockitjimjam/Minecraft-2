@@ -1,6 +1,8 @@
+import * as THREE from 'https://unpkg.com/three@latest/build/three.module.js';
 export class GameController {
-    constructor(game) {
+    constructor(game, player) {
         this.game = game;
+        this.player = player;
         this.events = {
             forward: false,
             backward: false,
@@ -44,17 +46,23 @@ export class GameController {
     }
     executeEvents() {
         if (this.events.forward) {
-            this.game.camera.position.z -= 0.1;
+            this.player.model.position.z -= 0.1;
         }
         if (this.events.backward) {
-            this.game.camera.position.z += 0.1;
+            this.player.model.position.z += 0.1;
         }
         if (this.events.left) {
-            this.game.camera.position.x -= 0.1;
+            this.player.model.position.x -= 0.1;
         }
         if (this.events.right) {
-            this.game.camera.position.x += 0.1;
+            this.player.model.position.x += 0.1;
         }
+    
+        const offset = new THREE.Vector3(0, 2, 3);
+        offset.applyQuaternion(this.player.model.quaternion); 
+        this.game.camera.position.copy(this.player.model.position.clone().add(offset));
+        this.game.camera.lookAt(this.player.model.position);
     }
+    
 
 }
