@@ -39,6 +39,7 @@ function animate() {
     lastTime = now;
     stats.begin();
     gameController.executeEvents(deltaTime);
+    /*
     game.accumulationMaterial.uniforms.tLast.value = game.accumulationBuffer.texture;
 
     // Render scene normally
@@ -48,6 +49,7 @@ function animate() {
 
     // Set current frame as input for the shader
     game.accumulationMaterial.uniforms.tCurrent.value = game.accumulationBuffer.texture;
+    */
     game.renderer.render(game.scene, game.camera);
     //game.composer.render();
     stats.end();

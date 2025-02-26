@@ -7,7 +7,8 @@ export class GameController {
             forward: false,
             backward: false,
             left: false,
-            right: false
+            right: false,
+            jump: false
         }
     }
     addKeybindsListener() {
@@ -25,6 +26,9 @@ export class GameController {
                 case 'd':
                     this.events.right = true;
                     break;
+                case ' ':
+                    this.events.jump = true;
+                    break;
             }
         });
         document.addEventListener('keyup', (event) => {
@@ -40,6 +44,9 @@ export class GameController {
                     break;
                 case 'd':
                     this.events.right = false;
+                    break;
+                case ' ':
+                    this.events.jump = false;
                     break;
             }
         });
@@ -59,7 +66,10 @@ export class GameController {
         if (this.events.right) {
             this.player.model.position.x += speed * deltaTime;
         }
-    
+        if (this.events.jump) {
+            this.player.jump();
+        }
+        this.player.tickGravity(deltaTime)
         // Camera follows the player
         const offset = new THREE.Vector3(0, 2, 3);
         offset.applyQuaternion(this.player.model.quaternion);
