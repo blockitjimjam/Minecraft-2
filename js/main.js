@@ -38,8 +38,8 @@ function checkForSurroundings() {
 }
 function loadBlocks() {
     window.loadBlocks = true;
-    for (let x = 0; x < 10; x++) {
-        for (let z = 0; z < 10; z++) {
+    for (let x = 0; x < 30; x++) {
+        for (let z = 0; z < 30; z++) {
             const y = Math.floor(noise(x / 50, z / 50) * 10);
             if (!checkForSurroundings()) {
 
