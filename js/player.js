@@ -17,14 +17,27 @@ export class Player {
     }
     tickGravity(deltaTime) {
         if (!this.touchingGround) {
-            this.model.position.y += this.velocity * deltaTime;
-            this.velocity -= 0.1
+            this.model.position.y += (this.velocity) * deltaTime ;
+            this.velocity -= this.gravity * deltaTime;
         } else {
             this.velocity = 0;
         }
     }
     jump() {
-        this.velocity = 5;
-        this.touchingGround = false;
+        if (this.touchingGround) {
+            this.velocity = 8;
+            this.touchingGround = false;
+        }
+    }
+    checkCollisions(terrainBoxes) {
+        const playerBox = new THREE.Box3().setFromObject(this.model); 
+    
+        for (let i = 0; i < terrainBoxes.length; i++) {
+            if (playerBox.intersectsBox(terrainBoxes[i])) {
+                return true;
+            }
+        }
+    
+        return false;
     }
 }

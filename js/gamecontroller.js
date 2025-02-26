@@ -10,6 +10,13 @@ export class GameController {
             right: false,
             jump: false
         }
+        this.coordinatesElement = document.getElementById("coordinates");
+        const canvas = this.game.renderer.domElement;
+        document.addEventListener('mousemove', (event) => {
+            if (document.pointerLockElement === canvas) {
+                player.model.rotation.y -= event.movementX * 0.005;
+            }
+        });
     }
     addKeybindsListener() {
         document.addEventListener('keydown', (event) => {
@@ -55,23 +62,34 @@ export class GameController {
         const speed = 5; // Movement speed (units per second)
     
         if (this.events.forward) {
-            this.player.model.position.z -= speed * deltaTime;
+            const theta = this.player.model.rotation.y;
+            this.player.model.position.x -= Math.sin(theta) * speed * deltaTime;
+            this.player.model.position.z -= Math.cos(theta) * speed * deltaTime;
+
         }
         if (this.events.backward) {
-            this.player.model.position.z += speed * deltaTime;
+            const theta = this.player.model.rotation.y + Math.PI;
+            this.player.model.position.x -= Math.sin(theta) * speed * deltaTime;
+            this.player.model.position.z -= Math.cos(theta) * speed * deltaTime;
         }
         if (this.events.left) {
-            this.player.model.position.x -= speed * deltaTime;
+            const theta = this.player.model.rotation.y + Math.PI / 2;
+            this.player.model.position.x -= Math.sin(theta) * speed * deltaTime;
+            this.player.model.position.z -= Math.cos(theta) * speed * deltaTime;
         }
         if (this.events.right) {
-            this.player.model.position.x += speed * deltaTime;
+            const theta = this.player.model.rotation.y - Math.PI / 2;
+            this.player.model.position.x -= Math.sin(theta) * speed * deltaTime;
+            this.player.model.position.z -= Math.cos(theta) * speed * deltaTime;
         }
         if (this.events.jump) {
             this.player.jump();
         }
+        this.coordinatesElement.textContent = `x: ${Math.floor(this.player.model.position.x)} y: ${Math.floor(this.player.model.position.y)} z: ${Math.floor(this.player.model.position.z)}`
         this.player.tickGravity(deltaTime)
         // Camera follows the player
-        const offset = new THREE.Vector3(0, 2, 3);
+        // const offset = new THREE.Vector3(0, 2, 3);
+        const offset = new THREE.Vector3(0, 0, 0.1);
         offset.applyQuaternion(this.player.model.quaternion);
         this.game.camera.position.copy(this.player.model.position.clone().add(offset));
         this.game.camera.lookAt(this.player.model.position);

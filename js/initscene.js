@@ -21,7 +21,17 @@ export class Game {
         this.composer = new THREE.EffectComposer(this.renderer, new THREE.WebGLRenderTarget(window.innerWidth * window.devicePixelRatio, window.innerHeight * window.devicePixelRatio));
         this.composer.setSize(window.innerWidth, window.innerHeight);
         this.composer.addPass(new THREE.RenderPass(this.scene, this.camera));
-
+        const canvas = this.renderer.domElement;
+         canvas.addEventListener('click', () => {
+           canvas.requestPointerLock();
+        });
+        // document.addEventListener('mousemove', (event) => {
+        //     if (document.pointerLockElement === canvas) {
+        //         this.camera.rotation.x -= event.movementY * 0.005;
+        //         this.camera.rotation.y -= event.movementX * 0.005;
+        //         this.camera.rotation.x = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, cameraRotation.x));
+        //     }
+        // });
         this.accumulationBuffer = new THREE.WebGLRenderTarget(window.innerWidth, window.innerHeight, {
             minFilter: THREE.LinearFilter,
             magFilter: THREE.LinearFilter,
