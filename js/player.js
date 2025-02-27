@@ -30,14 +30,20 @@ export class Player {
         }
     }
     checkCollisions(terrainBoxes) {
-        const playerBox = new THREE.Box3().setFromObject(this.model); 
+        const playerBox = new THREE.Box3().setFromObject(this.model);
+        console.log(terrainBoxes)
+        for (const chunkKey in terrainBoxes) { // Loop through all chunk keys
+            console.log(chunkKey)
+            const chunkBoxes = terrainBoxes[chunkKey]; // Get boxes for the chunk
     
-        for (let i = 0; i < terrainBoxes.length; i++) {
-            if (playerBox.intersectsBox(terrainBoxes[i])) {
-                return true;
+            for (let i = 0; i < chunkBoxes.length; i++) {
+                if (playerBox.intersectsBox(new THREE.Box3().setFromObject(chunkBoxes[i]))) {
+                    return true; // Collision detected
+                }
             }
         }
     
-        return false;
+        return false; // No collision
     }
+    
 }

@@ -88,8 +88,8 @@ export class GameController {
         this.coordinatesElement.textContent = `x: ${Math.floor(this.player.model.position.x)} y: ${Math.floor(this.player.model.position.y)} z: ${Math.floor(this.player.model.position.z)}`
         this.player.tickGravity(deltaTime)
         // Camera follows the player
-        // const offset = new THREE.Vector3(0, 2, 3);
-        const offset = new THREE.Vector3(0, 0, 0.1);
+        const offset = new THREE.Vector3(0, 2, 3);
+        // const offset = new THREE.Vector3(0, 0, 0.1);
         offset.applyQuaternion(this.player.model.quaternion);
         this.game.camera.position.copy(this.player.model.position.clone().add(offset));
         this.game.camera.lookAt(this.player.model.position);
