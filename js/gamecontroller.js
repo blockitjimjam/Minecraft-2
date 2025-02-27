@@ -10,11 +10,14 @@ export class GameController {
             right: false,
             jump: false
         }
+        this.pitch = 0;
         this.coordinatesElement = document.getElementById("coordinates");
         const canvas = this.game.renderer.domElement;
         document.addEventListener('mousemove', (event) => {
             if (document.pointerLockElement === canvas) {
                 player.model.rotation.y -= event.movementX * 0.005;
+                this.pitch -= event.movementY * 0.005;
+                this.pitch = Math.max(-3, Math.min(this.pitch, 3));
             }
         });
     }
@@ -88,7 +91,7 @@ export class GameController {
         this.coordinatesElement.textContent = `x: ${Math.floor(this.player.model.position.x)} y: ${Math.floor(this.player.model.position.y)} z: ${Math.floor(this.player.model.position.z)}`
         this.player.tickGravity(deltaTime)
         // Camera follows the player
-        const offset = new THREE.Vector3(0, 2, 3);
+        const offset = new THREE.Vector3(0, this.pitch, 3);
         // const offset = new THREE.Vector3(0, 0, 0.1);
         offset.applyQuaternion(this.player.model.quaternion);
         this.game.camera.position.copy(this.player.model.position.clone().add(offset));

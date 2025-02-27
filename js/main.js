@@ -22,7 +22,7 @@ const textures = {
     Snow: textureLoader.load("../assets/snow.jpg")
 }
 function getTexture(y) {
-    if (y < -5) {
+    if (y < -10) {
         return textures.Dirt;
     } else if (y < 3) {
         return textures.Grass;
