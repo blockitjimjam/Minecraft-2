@@ -35,10 +35,12 @@ export class Player {
         for (const chunkKey in terrainBoxes) { // Loop through all chunk keys
             console.log(chunkKey)
             const chunkBoxes = terrainBoxes[chunkKey]; // Get boxes for the chunk
-    
             for (let i = 0; i < chunkBoxes.length; i++) {
                 if (playerBox.intersectsBox(new THREE.Box3().setFromObject(chunkBoxes[i]))) {
-                    return true; // Collision detected
+                    if (!(chunkBoxes[i].userData.type == "water")) {
+                        return true; 
+                    }
+
                 }
             }
         }

@@ -19,7 +19,8 @@ const textures = {
     Dirt: textureLoader.load("../assets/dirt.jpg"),
     Grass: textureLoader.load("../assets/grass.jpg"),
     Stone: textureLoader.load("../assets/stone.jpg"),
-    Snow: textureLoader.load("../assets/snow.jpg")
+    Snow: textureLoader.load("../assets/snow.jpg"),
+    Water: textureLoader.load("../assets/water.jpg")
 }
 function getTexture(y) {
     if (y < -10) {
@@ -34,8 +35,20 @@ function getTexture(y) {
 }
 let CHUNK_SIZE = 8;
 let RENDER_DISTANCE = 2; // Number of chunks around the player to load
-const CHUNK_HEIGHT = 25; 
-
+const CHUNK_HEIGHT = 25;
+document.getElementById("settings").addEventListener("click", () => {
+    if (document.getElementById("settingsmenu").style.display == "none") {
+        document.getElementById("settingsmenu").style.display = "block";
+    } else {
+        document.getElementById("settingsmenu").style.display = "none"
+    }
+});
+document.getElementById("renderDistance").addEventListener("input", () => {
+    RENDER_DISTANCE = Number(document.getElementById("renderDistance").value);
+});
+document.getElementById("chunkSize").addEventListener("input", () => {
+    RENDER_DISTANCE = Number(document.getElementById("chunkSize").value);
+});
 let chunks = {}; // Tracks loaded chunks
 let terrainCubes = {}; // Store cubes per chunk
 
@@ -60,7 +73,14 @@ function loadChunk(chunkX, chunkZ) {
                     terrainCubes[chunkKey].push(placeBlock(x, y - 2, z));
                 }
             }
-            terrainCubes[chunkKey].push(placeBlock(x, y, z));
+            if (y > -12) {
+                terrainCubes[chunkKey].push(placeBlock(x, y, z));
+            } else {
+                terrainCubes[chunkKey].push(placeBlock(x, y, z));
+                if (y != -12) {
+                    terrainCubes[chunkKey].push(placeWater(x, z));
+                }
+            }
         }
     }
 }
@@ -69,17 +89,31 @@ function placeBlock(x, y, z) {
     const texture = getTexture(y);
     texture.magFilter = THREE.NearestFilter;
     texture.minFilter = THREE.NearestFilter;
-    
     const geometry = new THREE.BoxGeometry();
     const material = new THREE.MeshStandardMaterial({ map: texture });
     const cube = new THREE.Mesh(geometry, material);
-    
+    cube.userData.type = "notwater";
     cube.position.set(x, y, z);
     game.scene.add(cube);
 
     return cube;
 }
+function placeWater(x, z) {
+    const geometry = new THREE.BoxGeometry();
+    const material = new THREE.MeshStandardMaterial({ 
+        map: textures.Water,
+        transparent: true,
+        opacity: 0.5,
+        depthWrite: false
 
+    });
+    const cube = new THREE.Mesh(geometry, material);
+    cube.userData.type = "water";
+    cube.position.set(x, -12, z);
+    game.scene.add(cube);
+
+    return cube;
+}
 function unloadFarChunks(playerX, playerZ) {
     for (const chunkKey in chunks) {
         const [chunkX, chunkZ] = chunkKey.split(',').map(Number);
