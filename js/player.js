@@ -1,7 +1,7 @@
 
 export class Player {
     constructor(x, y ,z, color, game, gravity) {
-        this.geometry = new THREE.BoxGeometry();
+        this.geometry = new THREE.BoxGeometry(1, 2);
         this.material = new THREE.MeshBasicMaterial({color: color});
         this.model = new THREE.Mesh(this.geometry, this.material);
         this.model.position.set(x, y, z);

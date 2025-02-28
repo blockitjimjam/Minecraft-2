@@ -56,6 +56,9 @@ function loadChunk(chunkX, chunkZ) {
 
             if (checkForSurroundings(x, y, z)) {
                 terrainCubes[chunkKey].push(placeBlock(x, y - 1, z)); // Support block
+                if (checkForSurroundings(x, y - 1, z)) {
+                    terrainCubes[chunkKey].push(placeBlock(x, y - 2, z));
+                }
             }
             terrainCubes[chunkKey].push(placeBlock(x, y, z));
         }
