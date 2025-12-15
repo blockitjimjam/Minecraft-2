@@ -1,4 +1,5 @@
-
+import * as THREE from 'https://cdn.skypack.dev/three@0.138.0';
+window.THREE = THREE
 import Stats from 'https://unpkg.com/three@latest/examples/jsm/libs/stats.module.js';
 import { createNoise2D } from 'https://cdn.skypack.dev/simplex-noise@4.0.3';
 import { Game } from './initscene.js';
@@ -11,7 +12,8 @@ const manager = new THREE.LoadingManager(() => {
 const textureLoader = new THREE.TextureLoader(manager);
 const stats = new Stats();
 document.body.appendChild(stats.dom);
-const terrainBoxes = [];
+const terrainBoxes = {};
+const culledChunks = {};
 window.loadBlocks = false;
 const noise = createNoise2D();
 
@@ -34,6 +36,9 @@ function getTexture(y) {
     }
 }
 let CHUNK_SIZE = 8;
+let REACH = 5;
+
+
 let RENDER_DISTANCE = 2; // Number of chunks around the player to load
 const CHUNK_HEIGHT = 25;
 document.getElementById("settings").addEventListener("click", () => {
@@ -53,8 +58,20 @@ let chunks = {}; // Tracks loaded chunks
 let terrainCubes = {}; // Store cubes per chunk
 
 function checkForSurroundings(x, y, z) {
-    return !terrainCubes[`${x},${y - 1},${z}`]; // True if no block below
+    const terrainHeight = Math.floor(noise(x / 50, z / 50) * CHUNK_HEIGHT);
+
+    // Check surrounding terrain heights
+    const neighbors = [
+        Math.floor(noise((x + 1) / 50, z / 50) * CHUNK_HEIGHT),
+        Math.floor(noise((x - 1) / 50, z / 50) * CHUNK_HEIGHT),
+        Math.floor(noise(x / 50, (z + 1) / 50) * CHUNK_HEIGHT),
+        Math.floor(noise(x / 50, (z - 1) / 50) * CHUNK_HEIGHT)
+    ];
+
+    // If any neighbor is 2 or more blocks below y, it means exposure
+    return neighbors.some(neighborY => y - neighborY >= 2);
 }
+
 
 function loadChunk(chunkX, chunkZ) {
     const chunkKey = `${chunkX},${chunkZ}`;
@@ -62,30 +79,31 @@ function loadChunk(chunkX, chunkZ) {
 
     chunks[chunkKey] = true;
     terrainCubes[chunkKey] = []; // Store blocks for this chunk
+    terrainBoxes[chunkKey] = [];
 
     for (let x = chunkX * CHUNK_SIZE; x < (chunkX + 1) * CHUNK_SIZE; x++) {
         for (let z = chunkZ * CHUNK_SIZE; z < (chunkZ + 1) * CHUNK_SIZE; z++) {
             const y = Math.floor(noise(x / 50, z / 50) * CHUNK_HEIGHT);
 
             if (checkForSurroundings(x, y, z)) {
-                terrainCubes[chunkKey].push(placeBlock(x, y - 1, z)); // Support block
+                terrainCubes[chunkKey].push(placeBlock(x, y - 1, z, chunkKey)); // Support block
                 if (checkForSurroundings(x, y - 1, z)) {
-                    terrainCubes[chunkKey].push(placeBlock(x, y - 2, z));
+                    terrainCubes[chunkKey].push(placeBlock(x, y - 2, z, chunkKey));
                 }
             }
             if (y > -12) {
-                terrainCubes[chunkKey].push(placeBlock(x, y, z));
+                terrainCubes[chunkKey].push(placeBlock(x, y, z, chunkKey));
             } else {
-                terrainCubes[chunkKey].push(placeBlock(x, y, z));
+                terrainCubes[chunkKey].push(placeBlock(x, y, z, chunkKey));
                 if (y != -12) {
-                    terrainCubes[chunkKey].push(placeWater(x, z));
+                    terrainCubes[chunkKey].push(placeWater(x, z, chunkKey));
                 }
             }
         }
     }
 }
 
-function placeBlock(x, y, z) {
+function placeBlock(x, y, z, chunkKey) {
     const texture = getTexture(y);
     texture.magFilter = THREE.NearestFilter;
     texture.minFilter = THREE.NearestFilter;
@@ -95,10 +113,16 @@ function placeBlock(x, y, z) {
     cube.userData.type = "notwater";
     cube.position.set(x, y, z);
     game.scene.add(cube);
+    if (terrainBoxes[chunkKey]) {
+        terrainBoxes[chunkKey].push(new THREE.Box3().setFromObject(cube));
+    } else {
+        terrainBoxes[chunkKey] = []
+        terrainBoxes[chunkKey].push(new THREE.Box3().setFromObject(cube));
+    }
 
     return cube;
 }
-function placeWater(x, z) {
+function placeWater(x, z, chunkKey) {
     const geometry = new THREE.BoxGeometry();
     const material = new THREE.MeshStandardMaterial({ 
         map: textures.Water,
@@ -111,6 +135,12 @@ function placeWater(x, z) {
     cube.userData.type = "water";
     cube.position.set(x, -12, z);
     game.scene.add(cube);
+    if (terrainBoxes[chunkKey]) {
+        terrainBoxes[chunkKey].push(new THREE.Box3().setFromObject(cube));
+    } else {
+        terrainBoxes[chunkKey] = []
+        terrainBoxes[chunkKey].push(new THREE.Box3().setFromObject(cube));
+    }
 
     return cube;
 }
@@ -127,22 +157,36 @@ function unloadFarChunks(playerX, playerZ) {
             });
 
             delete terrainCubes[chunkKey];
+            delete terrainBoxes[chunkKey];
             delete chunks[chunkKey];
         }
     }
 }
 
-function updateChunks() {
+function updateChunks(camera) {
     const playerX = Math.floor(player.model.position.x / CHUNK_SIZE);
     const playerZ = Math.floor(player.model.position.z / CHUNK_SIZE);
 
     for (let x = playerX - RENDER_DISTANCE; x <= playerX + RENDER_DISTANCE; x++) {
         for (let z = playerZ - RENDER_DISTANCE; z <= playerZ + RENDER_DISTANCE; z++) {
-            loadChunk(x, z);
+            const chunkKey = `${x},${z}`;
+
+            // Skip reloading chunks that were recently culled
+            if (culledChunks[chunkKey]) {
+                chunks[chunkKey] = culledChunks[chunkKey];
+                delete culledChunks[chunkKey];
+                continue;
+            }
+
+            // Load new chunks
+            if (!chunks[chunkKey]) {
+                loadChunk(x, z);
+            }
         }
     }
 
     unloadFarChunks(playerX, playerZ);
+    
 }
 // textureLoader.load('../assets/dirt.jpg', (texture) => {
 //     texture.wrapS = THREE.RepeatWrapping;
@@ -174,23 +218,24 @@ function updateChunks() {
 const ambientLight = new THREE.AmbientLight(0xffffff, 1.5);
 game.scene.add(ambientLight);
 
-const player = new Player(0, 0, 0, 0xFF0000, game, 20);
+const player = new Player(0, 50, 0, 0xFF0000, game, 20);
+window.player = player
 const gameController = new GameController(game, player);
 gameController.addKeybindsListener();
 let lastTime = performance.now();
-function animate() {
+async function animate() {
     if (window.loadBlocks) {
         const now = performance.now();
         const deltaTime = (now - lastTime) / 1000;
         lastTime = now;
         stats.begin();
         gameController.executeEvents(deltaTime);
-        if (player.checkCollisions(terrainCubes)) {
+        if (await player.checkCollisions(terrainBoxes)) {
             player.touchingGround = true;
         } else {
             player.touchingGround = false;
         }
-        updateChunks();
+        updateChunks(game.camera);
         /*
         game.accumulationMaterial.uniforms.tLast.value = game.accumulationBuffer.texture;
 

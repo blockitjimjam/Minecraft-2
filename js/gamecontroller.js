@@ -10,7 +10,9 @@ export class GameController {
             right: false,
             jump: false
         }
+        this.controlsSuspended = false;
         this.pitch = 0;
+        this.speed = 4;
         this.coordinatesElement = document.getElementById("coordinates");
         const canvas = this.game.renderer.domElement;
         document.addEventListener('mousemove', (event) => {
@@ -62,32 +64,38 @@ export class GameController {
         });
     }
     executeEvents(deltaTime) {
-        const speed = 5; // Movement speed (units per second)
+        if (this.controlsSuspended) {
+            // set all events to false
+            for (const key in this.events) {
+                this.events[key] = false;
+            }
+        }
     
         if (this.events.forward) {
             const theta = this.player.model.rotation.y;
-            this.player.model.position.x -= Math.sin(theta) * speed * deltaTime;
-            this.player.model.position.z -= Math.cos(theta) * speed * deltaTime;
+            this.player.model.position.x -= Math.sin(theta) * this.speed * deltaTime;
+            this.player.model.position.z -= Math.cos(theta) * this.speed * deltaTime;
 
         }
         if (this.events.backward) {
             const theta = this.player.model.rotation.y + Math.PI;
-            this.player.model.position.x -= Math.sin(theta) * speed * deltaTime;
-            this.player.model.position.z -= Math.cos(theta) * speed * deltaTime;
+            this.player.model.position.x -= Math.sin(theta) * this.speed * deltaTime;
+            this.player.model.position.z -= Math.cos(theta) * this.speed * deltaTime;
         }
         if (this.events.left) {
             const theta = this.player.model.rotation.y + Math.PI / 2;
-            this.player.model.position.x -= Math.sin(theta) * speed * deltaTime;
-            this.player.model.position.z -= Math.cos(theta) * speed * deltaTime;
+            this.player.model.position.x -= Math.sin(theta) * this.speed * deltaTime;
+            this.player.model.position.z -= Math.cos(theta) * this.speed * deltaTime;
         }
         if (this.events.right) {
             const theta = this.player.model.rotation.y - Math.PI / 2;
-            this.player.model.position.x -= Math.sin(theta) * speed * deltaTime;
-            this.player.model.position.z -= Math.cos(theta) * speed * deltaTime;
+            this.player.model.position.x -= Math.sin(theta) * this.speed * deltaTime;
+            this.player.model.position.z -= Math.cos(theta) * this.speed * deltaTime;
         }
         if (this.events.jump) {
             this.player.jump();
         }
+        
         this.coordinatesElement.textContent = `x: ${Math.floor(this.player.model.position.x)} y: ${Math.floor(this.player.model.position.y)} z: ${Math.floor(this.player.model.position.z)}`
         this.player.tickGravity(deltaTime)
         // Camera follows the player
