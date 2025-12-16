@@ -40,7 +40,7 @@ let REACH = 5;
 
 
 let RENDER_DISTANCE = 2; // Number of chunks around the player to load
-const CHUNK_HEIGHT = 25;
+const CHUNK_HEIGHT = 15;
 document.getElementById("settings").addEventListener("click", () => {
     if (document.getElementById("settingsmenu").style.display == "none") {
         document.getElementById("settingsmenu").style.display = "block";
@@ -70,6 +70,26 @@ function checkForSurroundings(x, y, z) {
 
     // If any neighbor is 2 or more blocks below y, it means exposure
     return neighbors.some(neighborY => y - neighborY >= 2);
+}
+function playerPlaceBlock() {
+    const direction = new THREE.Vector3(0, 0, -1);
+    direction.applyQuaternion(game.camera.quaternion);
+    const raycaster = new THREE.Raycaster(game.camera.position, direction);
+    const intersects = raycaster.intersectObjects(Object.values(terrainCubes).flat());
+
+    if (intersects.length > 0 && intersects[0].distance <= REACH) {
+        const intersect = intersects[0];
+        const normal = intersect.face.normal;
+        const position = intersect.point.clone().addScaledVector(normal, 1).floor();
+
+        const chunkX = Math.floor(position.x / CHUNK_SIZE);
+        const chunkZ = Math.floor(position.z / CHUNK_SIZE);
+        const chunkKey = `${chunkX},${chunkZ}`;
+
+        terrainCubes[chunkKey].push(placeBlock(position.x, position.y, position.z, chunkKey));
+        return true;
+    }
+    return false;
 }
 
 
@@ -229,7 +249,7 @@ async function animate() {
         const deltaTime = (now - lastTime) / 1000;
         lastTime = now;
         stats.begin();
-        gameController.executeEvents(deltaTime);
+        gameController.executeEvents(deltaTime, playerPlaceBlock);
         if (await player.checkCollisions(terrainBoxes)) {
             player.touchingGround = true;
         } else {

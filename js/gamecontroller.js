@@ -8,7 +8,9 @@ export class GameController {
             backward: false,
             left: false,
             right: false,
-            jump: false
+            jump: false,
+            leftClick: false,
+            rightClick: false
         }
         this.controlsSuspended = false;
         this.pitch = 0;
@@ -62,8 +64,23 @@ export class GameController {
                     break;
             }
         });
+        // detect rightclick and left click for breaking and placing blocks
+        document.addEventListener('mousedown', (event) => {
+            if (event.button === 0) {
+                this.events.leftClick = true;
+            } else if (event.button === 2) {
+                this.events.rightClick = true;
+            }
+        });
+        document.addEventListener('mouseup', (event) => {
+            if (event.button === 0) {
+                this.events.leftClick = false;
+            } else if (event.button === 2) {
+                this.events.rightClick = false;
+            }
+        });
     }
-    executeEvents(deltaTime) {
+    executeEvents(deltaTime, playerPlaceBlock) {
         if (this.controlsSuspended) {
             // set all events to false
             for (const key in this.events) {
@@ -95,15 +112,29 @@ export class GameController {
         if (this.events.jump) {
             this.player.jump();
         }
+        if (this.events.leftClick) {
+            // break block
+        }
+        if (this.events.rightClick) {
+            // place block
+            playerPlaceBlock();
+            this.events.rightClick = false; // prevent continuous placing
+        }
         
         this.coordinatesElement.textContent = `x: ${Math.floor(this.player.model.position.x)} y: ${Math.floor(this.player.model.position.y)} z: ${Math.floor(this.player.model.position.z)}`
         this.player.tickGravity(deltaTime)
         // Camera follows the player
-        const offset = new THREE.Vector3(0, this.pitch, 3);
+        //const offset = new THREE.Vector3(0, this.pitch, 3);
         // const offset = new THREE.Vector3(0, 0, 0.1);
-        offset.applyQuaternion(this.player.model.quaternion);
-        this.game.camera.position.copy(this.player.model.position.clone().add(offset));
-        this.game.camera.lookAt(this.player.model.position);
+        //offset.applyQuaternion(this.player.model.quaternion);
+        //this.game.camera.position.copy(this.player.model.position.clone().add(offset));
+        // 1st person camera: allow pitch (up/down) and yaw (left/right), but no roll
+        this.game.camera.rotation.order = 'YXZ';
+        const offset = new THREE.Vector3(0, 1, 0);
+        //ca
+        this.game.camera.position.copy(this.player.model.position);
+        this.game.camera.rotation.set(this.pitch, this.player.model.rotation.y, 0); // Pitch and yaw, no roll
+        this.game.camera.position.add(offset);
     }
     
     
