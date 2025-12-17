@@ -22,7 +22,29 @@
         <input type="range" min="1" max="15" value="2" class="slider" id="renderDistance">
         <p>Chunk size</p>
         <input type="range" min="2" max="32" value="8" class="slider" id="chunkSize">
+    </div> 
+    <div id="central-cursor">
+        +
     </div>
+    <button id="block-menu-button"
+    style="position:absolute; bottom:0; right:0; margin:10px;
+           padding:20px; border-radius:3px;
+           background-image:linear-gradient(to right,#0077b8,#0033a0);
+           color:white;">
+    Select Block
+</button>
+
+<div id="block-menu"
+     style="position:absolute; bottom:70px; right:10px;
+            display:none;
+            background:#111;
+            padding:10px;
+            border-radius:6px;
+            max-width:360px;
+            max-height:300px;
+            overflow:auto;">
+</div>
+
     <script src="./js/main.js" type="module"></script>
 </body>
 </html>

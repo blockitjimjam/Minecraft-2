@@ -80,7 +80,7 @@ export class GameController {
             }
         });
     }
-    executeEvents(deltaTime, playerPlaceBlock) {
+    executeEvents(deltaTime, playerPlaceBlock, playerDestroyBlock) {
         if (this.controlsSuspended) {
             // set all events to false
             for (const key in this.events) {
@@ -114,6 +114,8 @@ export class GameController {
         }
         if (this.events.leftClick) {
             // break block
+            playerDestroyBlock();
+            this.events.leftClick = false;
         }
         if (this.events.rightClick) {
             // place block

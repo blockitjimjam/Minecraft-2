@@ -21,5 +21,6 @@ export class Game {
          canvas.addEventListener('click', () => {
            canvas.requestPointerLock();
         });
+        
     }
 }
