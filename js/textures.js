@@ -18,5 +18,6 @@ export const textures = {
     GoldBlock: textureLoader.load("../assets/gold_block.png"),
     IronBlock: textureLoader.load("../assets/iron_block.png"),
     OakPlanks: textureLoader.load("../assets/oak_planks.png"),
+    Beans: textureLoader.load("../assets/beans.png"),
 };
 

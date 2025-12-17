@@ -241,14 +241,8 @@ function loadChunk(chunkX, chunkZ) {
             if (!removedBlocks[chunkKey]) {
                 removedBlocks[chunkKey] = [];
             }
-            const isRemoved = removedBlocks[chunkKey].some(b => 
-                b.x === blockData.x && b.y === blockData.y && b.z === blockData.z
-            );
-            if (!isRemoved) {
                 terrainCubes[chunkKey].push(
-                    placeCustomBlock(blockData.x, blockData.y, blockData.z, chunkKey, blockData.blockType)
-                );
-            }   
+                    placeCustomBlock(blockData.x, blockData.y, blockData.z, chunkKey, blockData.blockType));
         });
     }
 }
@@ -310,15 +304,31 @@ function playerDestroyBlock() {
 
     const block = intersects[0].object;
     const chunkKey = block.userData.chunkKey;
-    if (!removedBlocks[chunkKey]) {
-        removedBlocks[chunkKey] = [];
+    let foundCustom = false;
+    if (customBlocks[chunkKey]) {
+        const idx = customBlocks[chunkKey].findIndex(b =>
+            b.x === block.position.x &&
+            b.y === block.position.y &&
+            b.z === block.position.z
+        );
+        if (idx !== -1) {
+            // Remove from customBlocks
+            customBlocks[chunkKey].splice(idx, 1);
+            foundCustom = true;
+        }
     }
 
-    removedBlocks[chunkKey].push({
-        x: block.position.x,
-        y: block.position.y,
-        z: block.position.z
-    });
+    // If not found in customBlocks, add to removedBlocks
+    if (!foundCustom) {
+        if (!removedBlocks[chunkKey]) {
+            removedBlocks[chunkKey] = [];
+        }
+        removedBlocks[chunkKey].push({
+            x: block.position.x,
+            y: block.position.y,
+            z: block.position.z
+        });
+    }
 
     // Remove mesh
     game.scene.remove(block);

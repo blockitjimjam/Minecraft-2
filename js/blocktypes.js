@@ -11,9 +11,10 @@ export class BlockTypes {
     static Bricks       = new BlockTypes("Bricks", textures.Bricks, 5);
     static Cobblestone  = new BlockTypes("Cobblestone", textures.Cobblestone, 6);
     static Glass        = new BlockTypes("Glass", textures.Glass, 7);
-    static GoldBlock    = new BlockTypes("GoldBlock", textures.GoldBlock, 8);
-    static IronBlock    = new BlockTypes("IronBlock", textures.IronBlock, 9);
-    static OakPlanks    = new BlockTypes("OakPlanks", textures.OakPlanks, 10);
+    static GoldBlock    = new BlockTypes("Gold Block", textures.GoldBlock, 8);
+    static IronBlock    = new BlockTypes("Iron Block", textures.IronBlock, 9);
+    static OakPlanks    = new BlockTypes("Oak Planks", textures.OakPlanks, 10);
+    static Beans        = new BlockTypes("Beans", textures.Beans, 11);
 
     constructor(name, texture, id) {
         this.name = name;
