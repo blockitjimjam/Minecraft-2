@@ -8,6 +8,27 @@ import { BlockTypes } from './blocktypes.js';
 import { Game } from './initscene.js';
 import { GameController } from './gamecontroller.js';
 import { Player } from './player.js';
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js";
+  import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.7.0/firebase-analytics.js";
+  // TODO: Add SDKs for Firebase products that you want to use
+  // https://firebase.google.com/docs/web/setup#available-libraries
+
+  // Your web app's Firebase configuration
+  // For Firebase JS SDK v7.20.0 and later, measurementId is optional
+  const firebaseConfig = {
+    apiKey: "AIzaSyDhRTQ_d15BAsCfpv0BK0KR7kNRF4-fl5Q",
+    authDomain: "minekraft-2.firebaseapp.com",
+    databaseURL: "https://minekraft-2-default-rtdb.europe-west1.firebasedatabase.app",
+    projectId: "minekraft-2",
+    storageBucket: "minekraft-2.firebasestorage.app",
+    messagingSenderId: "780426564564",
+    appId: "1:780426564564:web:b89407dd2643a4fccf7c41",
+    measurementId: "G-6NKESV2Z4T"
+  };
+
+  // Initialize Firebase
+  const app = initializeApp(firebaseConfig);
+  const analytics = getAnalytics(app);
 
 const game = new Game();
 
@@ -18,10 +39,20 @@ const culledChunks = {};
 const customBlocks = {};
 const removedBlocks = {};
 window.loadBlocks = false;
+// ===== Noise setup =====
 const rng = seedrandom('32434');
-const noise = createNoise2D(rng);
+const noise = createNoise2D(rng);        // detail noise
+const heightNoise = createNoise2D(rng);  // large-scale height noise
 
+// ===== Constants =====
+let CHUNK_SIZE = 8;
+let REACH = 5;
+let SELECTED_BLOCK = 0;
 
+// ===== Helpers =====
+function map(value, min1, max1, min2, max2) {
+    return min2 + (value - min1) * (max2 - min2) / (max1 - min1);
+}
 
 function getTexture(y) {
     if (y < -10) {
@@ -34,9 +65,78 @@ function getTexture(y) {
         return textures.Snow;
     }
 }
-let CHUNK_SIZE = 8;
-let REACH = 5;
-let SELECTED_BLOCK = 0;
+
+// ===== Chunk loading =====
+function loadChunk(chunkX, chunkZ) {
+    const chunkKey = `${chunkX},${chunkZ}`;
+    if (chunks[chunkKey]) return;
+
+    chunks[chunkKey] = true;
+    terrainCubes[chunkKey] = [];
+    terrainBoxes[chunkKey] = [];
+
+    // Load terrain
+    for (let x = chunkX * CHUNK_SIZE; x < (chunkX + 1) * CHUNK_SIZE; x++) {
+        for (let z = chunkZ * CHUNK_SIZE; z < (chunkZ + 1) * CHUNK_SIZE; z++) {
+
+            // ===== Large-scale height control (10x zoomed out) =====
+            const heightValue = heightNoise(x / 500, z / 500); // 50 * 10
+            const chunkHeight = Math.floor(
+                map(heightValue, -1, 1, 1, 25)
+            );
+
+            // ===== Small-scale detail noise =====
+            const detailValue = noise(x / 50, z / 50);
+
+            // Final terrain height
+            const y = Math.floor(detailValue * chunkHeight);
+
+            // ===== Terrain generation logic (unchanged) =====
+            if (checkForSurroundings(x, y, z)) {
+                const block1 = placeBlock(x, y - 1, z, chunkKey);
+                if (block1) terrainCubes[chunkKey].push(block1);
+
+                if (checkForSurroundings(x, y - 1, z)) {
+                    const block2 = placeBlock(x, y - 2, z, chunkKey);
+                    if (block2) terrainCubes[chunkKey].push(block2);
+                }
+            }
+
+            if (y > -12) {
+                const block = placeBlock(x, y, z, chunkKey);
+                if (block) terrainCubes[chunkKey].push(block);
+            } else {
+                const block = placeBlock(x, y, z, chunkKey);
+                if (block) terrainCubes[chunkKey].push(block);
+
+                if (y !== -12) {
+                    terrainCubes[chunkKey].push(
+                        placeWater(x, z, chunkKey)
+                    );
+                }
+            }
+        }
+    }
+
+    // ===== Rebuild custom placed blocks =====
+    if (customBlocks[chunkKey]) {
+        if (!removedBlocks[chunkKey]) {
+            removedBlocks[chunkKey] = [];
+        }
+
+        customBlocks[chunkKey].forEach(blockData => {
+            terrainCubes[chunkKey].push(
+                placeCustomBlock(
+                    blockData.x,
+                    blockData.y,
+                    blockData.z,
+                    chunkKey,
+                    blockData.blockType
+                )
+            );
+        });
+    }
+}
 
 // --- UI references ---
 const blockMenuBtn = document.getElementById("block-menu-button");
@@ -125,16 +225,30 @@ document.getElementById("chunkSize").addEventListener("input", () => {
 let chunks = {}; // Tracks loaded chunks
 let terrainCubes = {}; // Store cubes per chunk
 
-function checkForSurroundings(x, y, z) {
-    const terrainHeight = Math.floor(noise(x / 50, z / 50) * CHUNK_HEIGHT);
+function getTerrainHeight(x, z) {
+    // Large-scale height control
+    const heightValue = heightNoise(x / 500, z / 500);
+    const chunkHeight = Math.floor(
+        map(heightValue, -1, 1, 1, 25)
+    );
 
-    // Check surrounding terrain heights
+    // Small-scale detail noise
+    const detailValue = noise(x / 50, z / 50);
+
+    return Math.floor(detailValue * chunkHeight);
+}
+
+function checkForSurroundings(x, y, z) {
+    const terrainHeight = getTerrainHeight(x, z);
+
+    // Heights of neighboring columns
     const neighbors = [
-        Math.floor(noise((x + 1) / 50, z / 50) * CHUNK_HEIGHT),
-        Math.floor(noise((x - 1) / 50, z / 50) * CHUNK_HEIGHT),
-        Math.floor(noise(x / 50, (z + 1) / 50) * CHUNK_HEIGHT),
-        Math.floor(noise(x / 50, (z - 1) / 50) * CHUNK_HEIGHT)
+        getTerrainHeight(x + 1, z),
+        getTerrainHeight(x - 1, z),
+        getTerrainHeight(x, z + 1),
+        getTerrainHeight(x, z - 1)
     ];
+
 
     // If any neighbor is 2 or more blocks below y, it means exposure
     return neighbors.some(neighborY => y - neighborY >= 2);
@@ -201,51 +315,7 @@ function playerPlaceBlock() {
 
 
 
-function loadChunk(chunkX, chunkZ) {
-    const chunkKey = `${chunkX},${chunkZ}`;
-    if (chunks[chunkKey]) return;
 
-    chunks[chunkKey] = true;
-    terrainCubes[chunkKey] = [];
-    terrainBoxes[chunkKey] = [];
-
-    // Load terrain first
-    for (let x = chunkX * CHUNK_SIZE; x < (chunkX + 1) * CHUNK_SIZE; x++) {
-        for (let z = chunkZ * CHUNK_SIZE; z < (chunkZ + 1) * CHUNK_SIZE; z++) {
-            const y = Math.floor(noise(x / 50, z / 50) * CHUNK_HEIGHT);
-
-            if (checkForSurroundings(x, y, z)) {
-                const block1 = placeBlock(x, y - 1, z, chunkKey);
-                if (block1) terrainCubes[chunkKey].push(block1);
-                if (checkForSurroundings(x, y - 1, z)) {
-                    const block2 = placeBlock(x, y - 2, z, chunkKey);
-                    if (block2) terrainCubes[chunkKey].push(block2);
-                }
-            }
-            if (y > -12) {
-                const block = placeBlock(x, y, z, chunkKey);
-                if (block) terrainCubes[chunkKey].push(block);
-            } else {
-                const block = placeBlock(x, y, z, chunkKey);
-                if (block) terrainCubes[chunkKey].push(block);
-                if (y != -12) {
-                    terrainCubes[chunkKey].push(placeWater(x, z, chunkKey));
-                }
-            }
-        }
-    }
-
-    // Rebuild custom placed blocks
-    if (customBlocks[chunkKey]) {
-        customBlocks[chunkKey].forEach(blockData => {
-            if (!removedBlocks[chunkKey]) {
-                removedBlocks[chunkKey] = [];
-            }
-                terrainCubes[chunkKey].push(
-                    placeCustomBlock(blockData.x, blockData.y, blockData.z, chunkKey, blockData.blockType));
-        });
-    }
-}
 
 function placeBlock(x, y, z, chunkKey) {
     const texture = getTexture(y);

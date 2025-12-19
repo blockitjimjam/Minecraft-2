@@ -122,6 +122,10 @@ export class GameController {
             playerPlaceBlock();
             this.events.rightClick = false; // prevent continuous placing
         }
+        if (this.player.model.position.y < -100) {
+            this.player.model.position.y = 50;
+            this.player.velocity = 0;
+        }
         
         this.coordinatesElement.textContent = `x: ${Math.floor(this.player.model.position.x)} y: ${Math.floor(this.player.model.position.y)} z: ${Math.floor(this.player.model.position.z)}`
         this.player.tickGravity(deltaTime)
